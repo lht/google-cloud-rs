@@ -64,6 +64,14 @@ impl Subscription {
         }
     }
 
+    /// Returns the unique identifier within its project
+    pub fn id(&self) -> &str {
+        self.name
+            .rfind('/')
+            .map(|i| &self.name[i + 1..])
+            .expect("bad subscription name")
+    }
+
     /// Receive the next message from the subscription.
     pub async fn receive(&mut self) -> Option<Message> {
         loop {
@@ -95,11 +103,7 @@ impl Subscription {
     /// Delete the subscription.
     pub async fn delete(mut self) -> Result<(), Error> {
         let request = api::DeleteSubscriptionRequest {
-            subscription: format!(
-                "projects/{0}/subscriptions/{1}",
-                self.client.project_name.as_str(),
-                self.name,
-            ),
+            subscription: self.name.clone(),
         };
         let request = self.client.construct_request(request).await?;
         self.client.subscriber.delete_subscription(request).await?;
@@ -109,11 +113,7 @@ impl Subscription {
 
     pub(crate) async fn pull(&mut self) -> Result<Vec<api::ReceivedMessage>, Error> {
         let request = api::PullRequest {
-            subscription: format!(
-                "projects/{0}/subscriptions/{1}",
-                self.client.project_name.as_str(),
-                self.name,
-            ),
+            subscription: self.name.clone(),
             return_immediately: false,
             max_messages: 5,
         };
